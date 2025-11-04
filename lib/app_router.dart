@@ -39,6 +39,7 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
         builder: (_) => BookingNewScreen(
           serviceId: (map['serviceId'] ?? '') as String,
           serviceTitle: (map['serviceTitle'] ?? '') as String,
+          serviceImage: (map['serviceImage'] ?? '') as String,
         ),
         settings: settings,
       );

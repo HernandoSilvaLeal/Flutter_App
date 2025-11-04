@@ -34,28 +34,53 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0C4EAD),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 32),
-                const Text('Inicio de sesión', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 24),
-                TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
+                Image.asset(
+                  'assets/icono_fondo_azul.png',
+                  width: 180,
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: _pass, decoration: const InputDecoration(labelText: 'Contraseña'), obscureText: true),
+                TextField(
+                  controller: _pass,
+                  decoration: const InputDecoration(
+                    labelText: 'Contraseña',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                ),
                 if (_error != null) ...[
                   const SizedBox(height: 8),
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                 ],
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 FilledButton(
                   onPressed: _loading ? null : _login,
-                  child: _loading ? const SizedBox(height: 18,width:18,child:CircularProgressIndicator(strokeWidth:2)) : const Text('Iniciar'),
+                  child: _loading
+                      ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Iniciar sesión'),
                 ),
                 const SizedBox(height: 8),
                 TextButton(

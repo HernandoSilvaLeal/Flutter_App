@@ -5,9 +5,10 @@ class ServiceCard extends StatelessWidget {
   final String subtitle;
   final double rating;
   final String? imageUrl;
+  final String? heroTag;
   final VoidCallback onTap;
 
-  const ServiceCard({super.key, required this.title, required this.subtitle, required this.rating, this.imageUrl, required this.onTap});
+  const ServiceCard({super.key, required this.title, required this.subtitle, required this.rating, this.imageUrl, this.heroTag, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -20,13 +21,38 @@ class ServiceCard extends StatelessWidget {
             if ((imageUrl ?? '').isNotEmpty)
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                child: Image.network(
-                  imageUrl!,
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(height: 120),
-                ),
+                child: heroTag != null
+                    ? Hero(
+                        tag: heroTag!,
+                        child: imageUrl!.startsWith('assets/')
+                            ? Image.asset(
+                                imageUrl!,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.network(
+                                imageUrl!,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const SizedBox(height: 120),
+                              ),
+                      )
+                    : (imageUrl!.startsWith('assets/')
+                        ? Image.asset(
+                            imageUrl!,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          )
+                        : Image.network(
+                            imageUrl!,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(height: 120),
+                          )),
               )
             else
               const Padding(

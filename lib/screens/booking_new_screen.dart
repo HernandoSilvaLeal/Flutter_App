@@ -7,7 +7,8 @@ import 'package:intl/intl.dart';
 class BookingNewScreen extends StatefulWidget {
   final String serviceId;
   final String serviceTitle;
-  const BookingNewScreen({super.key, required this.serviceId, required this.serviceTitle});
+  final String serviceImage;
+  const BookingNewScreen({super.key, required this.serviceId, required this.serviceTitle, required this.serviceImage});
   @override
   State<BookingNewScreen> createState() => _BookingNewScreenState();
 }
@@ -25,6 +26,15 @@ class _BookingNewScreenState extends State<BookingNewScreen> {
   }
 
   Future<void> _createBooking() async {
+    // Validate incoming service args
+    if (widget.serviceId.trim().isEmpty || widget.serviceTitle.trim().isEmpty) {
+      debugPrint('🔥 Booking missing service args: id="${widget.serviceId}" title="${widget.serviceTitle}"');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error: datos del servicio incompletos')));
+      }
+      return;
+    }
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'No hay usuario autenticado';
@@ -33,14 +43,17 @@ class _BookingNewScreenState extends State<BookingNewScreen> {
       final startTime = _start;
       final endTime = _end;
 
-      if (selectedDay == null) throw 'Seleccione una fecha';
       if (startTime.isEmpty || endTime.isEmpty) throw 'Seleccione horas';
 
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+
       final Map<String, dynamic> booking = {
+        'id': id,
         'userId': user.uid,
         'serviceId': widget.serviceId,
         'serviceTitle': widget.serviceTitle,
-        'date': Timestamp.fromDate(selectedDay),
+        'serviceImage': widget.serviceImage,
+        'date': selectedDay.toIso8601String(),
         'startTime': startTime,
         'endTime': endTime,
         'createdAt': FieldValue.serverTimestamp(),
@@ -49,19 +62,19 @@ class _BookingNewScreenState extends State<BookingNewScreen> {
       // Trace payload before write
       debugPrint('📦 booking payload => $booking');
 
-      await FirebaseFirestore.instance.collection('bookings').add(booking);
+      await FirebaseFirestore.instance.collection('bookings').doc(id).set(booking);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reserva creada exitosamente')));
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(backgroundColor: Colors.green, content: Text('Reserva creada correctamente')));
+        Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
       }
     } on FirebaseException catch (e) {
       debugPrint('❌ FirebaseException code=${e.code} msg=${e.message}');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error Firestore: ${e.code}')));
       }
-    } catch (e) {
-      debugPrint('❌ Error creando booking: $e');
+    } catch (e, st) {
+      debugPrint('❌ Error creando booking: $e\n$st');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
@@ -100,26 +113,58 @@ class _BookingNewScreenState extends State<BookingNewScreen> {
       appBar: AppBar(title: Text('Reservar — ${widget.serviceTitle}')),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: Column(children: [
-          TableCalendar(firstDay: DateTime.now(), lastDay: DateTime.now().add(const Duration(days: 365)), focusedDay: _selected, selectedDayPredicate: (d) => isSameDay(d, _selected), onDaySelected: (d, _) => setState(() => _selected = d)),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: DropdownButtonFormField<String>(value: _start, items: _times.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) => setState(() => _start = v!))),
-            const SizedBox(width: 8),
-            Expanded(child: DropdownButtonFormField<String>(value: _end, items: _times.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) => setState(() => _end = v!))),
-          ]),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: _isSaving
-                ? null
-                : () async {
-                    setState(() => _isSaving = true);
-                    await _createBooking();
-                    if (mounted) setState(() => _isSaving = false);
-                  },
-            child: _isSaving ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Crear agenda'),
-          )
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Expanded(
+              child: TableCalendar(
+                firstDay: DateTime.now(),
+                lastDay: DateTime.now().add(const Duration(days: 365)),
+                focusedDay: _selected,
+                selectedDayPredicate: (d) => isSameDay(d, _selected),
+                onDaySelected: (d, _) => setState(() => _selected = d),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _start,
+                  items: _times.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                  onChanged: (v) => setState(() => _start = v!),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _end,
+                  items: _times.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                  onChanged: (v) => setState(() => _end = v!),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            await _createBooking();
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                  child: _isSaving ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Crear agenda'),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
